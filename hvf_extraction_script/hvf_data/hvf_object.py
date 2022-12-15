@@ -64,8 +64,6 @@ from hvf_extraction_script.utilities.ocr_utils import Ocr_Utils
 from hvf_extraction_script.utilities.regex_utils import Regex_Utils
 from tesserocr import PSM, PyTessBaseAPI
 
-# Import some of our own written modules:
-
 
 class Hvf_Object:
 
@@ -977,14 +975,15 @@ class Hvf_Object:
         header_slice = Image_Utils.slice_image(hvf_image, 0, 0.15, 0, 0.31)
 
         Ocr_Utils.OCR_API_HANDLE = PyTessBaseAPI(psm=PSM.SPARSE_TEXT_OSD)
-        header_text = Ocr_Utils.perform_ocr(header_slice, proc_img=True, debug_dir=Hvf_Object.debug_dir)
+        header_text = Ocr_Utils.perform_ocr(header_slice, proc_img=True, debug_dir=Hvf_Object.debug_dir, column=False)
         Ocr_Utils.OCR_API_HANDLE = None
 
+        # partial_fuzz_score = fuzz.partial_ratio("Date of Birth", header_text);
         partial_fuzz_score = fuzz.partial_ratio("Fixation", header_text)
 
         if partial_fuzz_score < 50:
             return_version = Hvf_Object.HVF_LAYOUT_V3
-        elif width < 1200:
+        elif width < 1400:
             return_version = Hvf_Object.HVF_LAYOUT_V1
         else:
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
@@ -1506,6 +1505,7 @@ class Hvf_Object:
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
             dev_val_slice_image = Image_Utils.slice_image(hvf_image_gray, 0.5, 0.15, 0.70, 0.35)
 
+        # if layout_version in [Hvf_Object.HVF_LAYOUT_V2, Hvf_Object.HVF_LAYOUT_V3]:
         if layout_version == Hvf_Object.HVF_LAYOUT_V2:
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
             dev_val_slice_image = Image_Utils.slice_image(hvf_image_gray, 0.45, 0.2, 0.65, 0.35)

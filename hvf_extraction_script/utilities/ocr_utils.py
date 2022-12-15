@@ -24,7 +24,7 @@ class RekognitionText:
         return f"{self.id}:{self.parent_id}:{self.kind}:{self.text}"
 
 
-def columnise(texts, rel_tol=0.01) -> str:
+def columnise(texts, rel_tol=0.02) -> str:
     tops = [x.geometry["BoundingBox"]["Top"] for x in texts]
     ntops = tops[:]
     for n, top in enumerate(tops[:-1]):
@@ -38,6 +38,7 @@ def columnise(texts, rel_tol=0.01) -> str:
                 dic_lines[n].append(block)
             elif ltop > top:
                 break
+
     # sort by Left within line
     res = []
     for oo in [sorted(x, key=lambda y: y.geometry["BoundingBox"]["Left"]) for x in dic_lines.values()]:  # type: ignore

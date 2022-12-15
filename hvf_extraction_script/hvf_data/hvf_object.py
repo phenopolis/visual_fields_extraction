@@ -1138,7 +1138,7 @@ class Hvf_Object:
         # Contains: laterality, DOB, date of test, time and age
 
         # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
-        header_slice_image4 = Image_Utils.slice_image(hvf_image_gray, 0, 0.27, 0.71, (1.0 - 0.71))
+        header_slice_image4 = Image_Utils.slice_image(hvf_image_gray, 0, 0.27, 0.705, (1.0 - 0.705))
         header_text4 = Ocr_Utils.perform_ocr(header_slice_image4, debug_dir=Hvf_Object.debug_dir)
         metadata_text = metadata_text + "\n" + header_text4
 
@@ -1195,7 +1195,7 @@ class Hvf_Object:
             field, tokenized_header1_list = Regex_Utils.fuzzy_regex("Name: ", tokenized_header1_list)
             hvf_metadata[Hvf_Object.KEYLABEL_NAME] = field
 
-            field, tokenized_header1_list = Regex_Utils.fuzzy_regex("ID: ", tokenized_header1_list)
+            field, tokenized_header1_list = Regex_Utils.strict_regex("ID: ", tokenized_header1_list)
             field = Regex_Utils.remove_spaces(field)
             hvf_metadata[Hvf_Object.KEYLABEL_ID] = field
 
@@ -1210,7 +1210,8 @@ class Hvf_Object:
 
         # ===== VISUAL_ACUITY DETECTION =====
         field, tokenized_header_middle_list = Regex_Utils.fuzzy_regex("Visual Acuity:", tokenized_header_middle_list)
-
+        field = field[: field.find("Time")]  # affects V2
+        field = Regex_Utils.remove_spaces(field)
         hvf_metadata[Hvf_Object.KEYLABEL_VISUAL_ACUITY] = field
 
         # ===== BACKGROUND DETECTION =====
@@ -1353,11 +1354,13 @@ class Hvf_Object:
 
         field, tokenized_header1_list = Regex_Utils.fuzzy_regex("False POS Errors: ", tokenized_header1_list)
         field = Regex_Utils.remove_spaces(field)
+        field = Regex_Utils.remove_non_numeric(field, [r"%"])
         field = field.replace("O", "0")
         hvf_metadata[Hvf_Object.KEYLABEL_FALSE_POS] = field
 
         field, tokenized_header1_list = Regex_Utils.fuzzy_regex("False NEG Errors: ", tokenized_header1_list)
         field = Regex_Utils.remove_spaces(field)
+        field = Regex_Utils.remove_non_numeric(field, [r"%"])
         field = field.replace("O", "0")
         hvf_metadata[Hvf_Object.KEYLABEL_FALSE_NEG] = field
 
@@ -1385,8 +1388,10 @@ class Hvf_Object:
             if string_match[1] > best_score:
                 best_match = size
                 best_score = string_match[1]
-
-        field = best_match
+        if best_score > 95:
+            field = best_match
+        else:
+            field = Regex_Utils.REGEX_FAILURE
 
         hvf_metadata[Hvf_Object.KEYLABEL_FIELD_SIZE] = field
 
@@ -1411,8 +1416,11 @@ class Hvf_Object:
         # ===== PUPIL DIAMETER DETECTION =====
         field, tokenized_header_middle_list = Regex_Utils.fuzzy_regex("Pupil Diameter: ", tokenized_header_middle_list)
 
-        # Strip off everything after 'mm'
-        if not (field == Regex_Utils.REGEX_FAILURE):
+        if field == Regex_Utils.REGEX_FAILURE:
+            if "Pupil Diameter:" in tokenized_header_middle_list:
+                field = ""
+        else:
+            # Strip off everything after 'mm'
 
             # Construct regex to extract the value
             regexp = r"(.*)\s*mm"
@@ -1478,6 +1486,7 @@ class Hvf_Object:
                 Logger.get_logger().log_msg(Logger.DEBUG_FLAG_WARNING, "Unable to extract Rx data")
 
         # field = Regex_Utils.remove_non_numeric(field, ['.'])
+        field = Regex_Utils.clean_punctuation_to_period(field)
         hvf_metadata[Hvf_Object.KEYLABEL_RX] = field
 
         Logger.get_logger().log_msg(Logger.DEBUG_FLAG_DEBUG, "===== End Extracting Metadata =====")

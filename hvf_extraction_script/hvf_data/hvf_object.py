@@ -62,7 +62,6 @@ from hvf_extraction_script.utilities.ocr_utils import Ocr_Utils
 
 # Regex utility functions:
 from hvf_extraction_script.utilities.regex_utils import Regex_Utils
-from tesserocr import PSM, PyTessBaseAPI
 
 
 class Hvf_Object:
@@ -974,9 +973,7 @@ class Hvf_Object:
         # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
         header_slice = Image_Utils.slice_image(hvf_image, 0, 0.15, 0, 0.31)
 
-        Ocr_Utils.OCR_API_HANDLE = PyTessBaseAPI(psm=PSM.SPARSE_TEXT_OSD)
         header_text = Ocr_Utils.perform_ocr(header_slice, proc_img=True, debug_dir=Hvf_Object.debug_dir, column=False)
-        Ocr_Utils.OCR_API_HANDLE = None
 
         # partial_fuzz_score = fuzz.partial_ratio("Date of Birth", header_text);
         partial_fuzz_score = fuzz.partial_ratio("Fixation", header_text)

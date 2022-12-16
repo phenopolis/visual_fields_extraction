@@ -886,13 +886,14 @@ class Hvf_Plot_Array:
                                 Logger.DEBUG_FLAG_INFO, "Percentile Icon detected: " + cell_object.get_display_string()
                             )
 
-                        except Exception as e:
+                        except Exception:
                             Logger.get_logger().log_msg(
                                 Logger.DEBUG_FLAG_WARNING,
                                 "Cell " + str(x) + "," + str(y) + ": Percentile icon detection failure",
                             )
                             cell_object = Hvf_Perc_Icon.get_perc_icon_from_char(Hvf_Perc_Icon.PERC_FAILURE_CHAR)
-                            raise Exception(str(e))
+                            # raise Exception(str(Exception))
+                            # print(str(Exception))
 
                     else:
                         # This is a no-detect element, so just instantiate a blank:

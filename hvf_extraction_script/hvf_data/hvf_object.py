@@ -1599,11 +1599,19 @@ class Hvf_Object:
 
         if layout_version == Hvf_Object.HVF_LAYOUT_V3:
             # Can either be "VFI<FIELD SIZE>" (eg, VFI24-2) or "VFI"
-            label = "VFI{}".format(field_size)
-            regex_string = "VFI(?:" + field_size + r")?:\s*(.*)"
+            label = f"VFI{field_size}"
+            regex_string = rf"VFI(?:{field_size})?:\s*(.*)"
             field, tokenized_dev_val_list = Regex_Utils.fuzzy_regex_middle_field(
                 label, regex_string, tokenized_dev_val_list
             )
+            if field == Regex_Utils.REGEX_FAILURE:
+                # loose field_size
+                regex_string = r"VFI(?:\d+-\d)?:\s*(.*)"
+                field, tokenized_dev_val_list = Regex_Utils.fuzzy_regex_middle_field(
+                    label, regex_string, tokenized_dev_val_list
+                )
+                if field != Regex_Utils.REGEX_FAILURE:
+                    field = f"{field}*"
 
         field = Regex_Utils.clean_punctuation_to_period(field)
         field = Regex_Utils.remove_spaces(field)

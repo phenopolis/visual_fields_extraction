@@ -23,7 +23,6 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "tesserOCR",
         "regex",
         "pydicom",
         "pillow",
@@ -33,6 +32,9 @@ setuptools.setup(
         "typed-argument-parser",
         "python-levenshtein",
     ],
+    extras_require={
+        "tesserOCR": ["tesserOCR"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.1.0",
     author="Murtaza Saifee",
     author_email="saifeeapps@gmail.com",
-    description="Python extraction script for HVF report images using AWS rekognition",
+    description="Python extraction script for HVF report images using AWS rekognition as an option as well",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/msaifee786/hvf_extraction_script",
@@ -23,12 +23,14 @@ setuptools.setup(
         ]
     },
     install_requires=[
+        "tesserOCR",
         "regex",
         "pydicom",
         "pillow",
         "opencv-python",
         "fuzzywuzzy",
         "fuzzysearch",
+        "typed-argument-parser",
         "python-levenshtein",
     ],
     classifiers=[

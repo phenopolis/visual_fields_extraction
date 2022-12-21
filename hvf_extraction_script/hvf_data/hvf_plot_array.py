@@ -23,6 +23,7 @@ import pkgutil
 
 import cv2
 import numpy as np
+
 from hvf_extraction_script.hvf_data.hvf_perc_icon import Hvf_Perc_Icon
 from hvf_extraction_script.hvf_data.hvf_value import Hvf_Value
 from hvf_extraction_script.utilities.file_utils import File_Utils
@@ -229,7 +230,7 @@ class Hvf_Plot_Array:
             return Hvf_Plot_Array.get_array_string(self.plot_array, self.icon_type, delimiter)
 
     ###############################################################################
-    # Get list of display string for each row in array (for serialization
+    # Get list of display string for each row in array (for serialization)
     def get_display_string_list(self, delimiter):
 
         # Check if pattern plot/no pattern generated
@@ -832,7 +833,7 @@ class Hvf_Plot_Array:
             # cv2.line(plot_image_debug_copy, (0, y), (plot_width, y), (0), 1)
 
         # Debug function for showing the plot:
-        show_plot_func = lambda: cv2.imshow("plot " + icon_type, plot_image_debug_copy)
+        show_plot_func = lambda: cv2.imshow("plot " + icon_type, plot_image_debug_copy)  # noqa: E731
         Logger.get_logger().log_function(Logger.DEBUG_FLAG_DEBUG, show_plot_func)
 
         # cv2.imshow("plot " + icon_type, plot_image_debug_copy)
@@ -937,9 +938,9 @@ class Hvf_Plot_Array:
                 # Lastly, store into array:
                 plot_values_array[x, y] = cell_object
 
-        wait_func = lambda: cv2.waitKey(0)
+        wait_func = lambda: cv2.waitKey(0)  # noqa: E731
         Logger.get_logger().log_function(Logger.DEBUG_FLAG_DEBUG, wait_func)
-        destroy_windows_func = lambda: cv2.destroyAllWindows()
+        destroy_windows_func = lambda: cv2.destroyAllWindows()  # noqa: E731
         Logger.get_logger().log_function(Logger.DEBUG_FLAG_DEBUG, destroy_windows_func)
 
         # Return our array:

@@ -233,13 +233,14 @@ class Hvf_Object:
     # This is the method to call to generate a new HVF object
     # Takes in an OpenCV image object
     @classmethod
-    def get_hvf_object_from_image(cls, hvf_image, debug_dir=""):
+    def get_hvf_object_from_image(cls, hvf_image, debug_dir="", rekognition=False):
 
         if debug_dir:
             if not os.path.exists(debug_dir):
                 os.mkdir(debug_dir)
 
         cls.debug_dir = debug_dir
+        cls.rekognition = rekognition
 
         # Initialize any templates/variables if this is first time we are running:
         if cls.is_initialized is False:
@@ -263,7 +264,7 @@ class Hvf_Object:
         # Grab greyscale:
         hvf_image_gray = cv2.cvtColor(hvf_image, cv2.COLOR_BGR2GRAY)
 
-        layout_version = cls.find_image_layout_version(hvf_image_gray, width)
+        layout_version = cls.find_image_layout_version(cls, hvf_image_gray, width)
         if debug_dir:
             print(f">>> layout_version {layout_version}, width {width}")
 
@@ -279,7 +280,7 @@ class Hvf_Object:
         pat_dev_percentile_array = cls.get_pattern_deviation_perc_plot(hvf_image_gray)
 
         # Get header metadata:
-        metadata = cls.get_header_metadata_from_hvf_image(hvf_image_gray, layout_version)
+        metadata = cls.get_header_metadata_from_hvf_image(cls, hvf_image_gray, layout_version)
 
         # Then validate the field size/laterality based on layout of field:
         field_size_laterality_dict = Hvf_Object.get_field_size_laterality_from_plot(abs_dev_value_array)
@@ -287,7 +288,7 @@ class Hvf_Object:
 
         # Then, get the metric metadata (need to know field size):
         metric_metadata = cls.get_metric_metadata_from_hvf_image(
-            hvf_image_gray, layout_version, metadata[Hvf_Object.KEYLABEL_FIELD_SIZE]
+            cls, hvf_image_gray, layout_version, metadata[Hvf_Object.KEYLABEL_FIELD_SIZE]
         )
         metadata.update(metric_metadata)
 
@@ -961,19 +962,29 @@ class Hvf_Object:
 
     ###############################################################################
     # Given a full image, determines what type of layout it is
-    # Implementation: simply looks for "Date of Birth" in top right header -> if
+    # Implementation: simply looks for "Fixation" in top right header -> if
     # found, then v3. If not, and low resolution, v1; otherwise v2
     # Searching done by regex and fuzzy matching
     # Likely will need to be improved in future
-    @staticmethod
-    def find_image_layout_version(hvf_image, width):
+    def find_image_layout_version(self, hvf_image, width):
 
         # Perform some pre-processing:
 
         # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
         header_slice = Image_Utils.slice_image(hvf_image, 0, 0.15, 0, 0.31)
 
-        header_text = Ocr_Utils.perform_ocr(header_slice, proc_img=True, debug_dir=Hvf_Object.debug_dir, column=False)
+        if self.rekognition:
+            header_text = Ocr_Utils.perform_ocr(
+                header_slice, proc_img=True, debug_dir=Hvf_Object.debug_dir, column=False, rekognition=self.rekognition
+            )
+        else:
+            from tesserocr import PSM, PyTessBaseAPI
+
+            Ocr_Utils.OCR_API_HANDLE = PyTessBaseAPI(psm=PSM.SPARSE_TEXT_OSD)
+            header_text = Ocr_Utils.perform_ocr(
+                header_slice, proc_img=True, debug_dir=Hvf_Object.debug_dir, column=False, rekognition=self.rekognition
+            )
+            Ocr_Utils.OCR_API_HANDLE = None
 
         # partial_fuzz_score = fuzz.partial_ratio("Date of Birth", header_text);
         partial_fuzz_score = fuzz.partial_ratio("Fixation", header_text)
@@ -986,7 +997,7 @@ class Hvf_Object:
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
 
             gpa_slice = Image_Utils.slice_image(hvf_image, 0.28, 0.45, 0.60, 0.40)
-            gpa_text = Ocr_Utils.perform_ocr(gpa_slice, debug_dir=Hvf_Object.debug_dir)
+            gpa_text = Ocr_Utils.perform_ocr(gpa_slice, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition)
 
             partial_fuzz_score = fuzz.partial_ratio("See GPA printout", gpa_text)
 
@@ -1047,8 +1058,7 @@ class Hvf_Object:
 
     ###############################################################################
     # Reads header metadata from HVF image:
-    @staticmethod
-    def get_header_metadata_from_hvf_image(hvf_image_gray, layout_version):
+    def get_header_metadata_from_hvf_image(self, hvf_image_gray, layout_version):
 
         # hvf_image_gray = Image_Utils.preprocess_image(hvf_image_gray);
 
@@ -1079,7 +1089,9 @@ class Hvf_Object:
 
         # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
         header_slice_image1 = Image_Utils.slice_image(hvf_image_gray, 0, 0.27, 0, 0.33)
-        header_text1 = Ocr_Utils.perform_ocr(header_slice_image1, debug_dir=Hvf_Object.debug_dir)
+        header_text1 = Ocr_Utils.perform_ocr(
+            header_slice_image1, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition
+        )
         metadata_text = metadata_text + "\n" + header_text1
 
         # The middle header layout depends on layout type:
@@ -1103,7 +1115,9 @@ class Hvf_Object:
             # Contains: Stimulus, background, and strategy
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
             header_slice_image2 = Image_Utils.slice_image(hvf_image_gray, 0, 0.27, 0.31, (0.547 - 0.31))
-            header_text2 = Ocr_Utils.perform_ocr(header_slice_image2, debug_dir=Hvf_Object.debug_dir)
+            header_text2 = Ocr_Utils.perform_ocr(
+                header_slice_image2, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition
+            )
 
             # Header 3 slice:
             # Height: 0.0 -> 0.17
@@ -1111,7 +1125,9 @@ class Hvf_Object:
             # Contains: pupil diameter, visual acuity, Rx
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
             header_slice_image3 = Image_Utils.slice_image(hvf_image_gray, 0, 0.27, 0.547, (0.83 - 0.547))
-            header_text3 = Ocr_Utils.perform_ocr(header_slice_image3, debug_dir=Hvf_Object.debug_dir)
+            header_text3 = Ocr_Utils.perform_ocr(
+                header_slice_image3, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition
+            )
 
             # print(header_text3);
             # cv2.imshow("rx", header_slice_image3);
@@ -1127,7 +1143,9 @@ class Hvf_Object:
             # Contains: Stimulus, background, and strategy
             # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
             header_slice_image_middle = Image_Utils.slice_image(hvf_image_gray, 0, 0.25, 0.403, (0.75 - 0.403))
-            header_text_middle = Ocr_Utils.perform_ocr(header_slice_image_middle, debug_dir=Hvf_Object.debug_dir)
+            header_text_middle = Ocr_Utils.perform_ocr(
+                header_slice_image_middle, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition
+            )
 
         # Header 4 slice:
         # Height: 0.0 -> 0.17
@@ -1136,7 +1154,9 @@ class Hvf_Object:
 
         # Recall arguments: (image, y_ratio, y_size, x_ratio, x_size)
         header_slice_image4 = Image_Utils.slice_image(hvf_image_gray, 0, 0.27, 0.705, (1.0 - 0.705))
-        header_text4 = Ocr_Utils.perform_ocr(header_slice_image4, debug_dir=Hvf_Object.debug_dir)
+        header_text4 = Ocr_Utils.perform_ocr(
+            header_slice_image4, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition
+        )
         metadata_text = metadata_text + "\n" + header_text4
 
         hvf_metadata = {}
@@ -1493,8 +1513,7 @@ class Hvf_Object:
 
     ###############################################################################
     # Reads MD/PSD/VFI metadata from HVF image:
-    @staticmethod
-    def get_metric_metadata_from_hvf_image(hvf_image_gray, layout_version, field_size):
+    def get_metric_metadata_from_hvf_image(self, hvf_image_gray, layout_version, field_size):
 
         # Image processing for optimization:
         # First, convert grayscale -> black and white, to optimize text detection
@@ -1527,7 +1546,9 @@ class Hvf_Object:
         global_threshold = 0.00001
         relative_threshold = 0.000005
         dev_val_slice_image = Image_Utils.delete_stray_marks(dev_val_slice_image, global_threshold, relative_threshold)
-        dev_val_slice_text = Ocr_Utils.perform_ocr(dev_val_slice_image, debug_dir=Hvf_Object.debug_dir)
+        dev_val_slice_text = Ocr_Utils.perform_ocr(
+            dev_val_slice_image, debug_dir=Hvf_Object.debug_dir, rekognition=self.rekognition
+        )
 
         # print(dev_val_slice_text);
         # cv2.imshow("dev", dev_val_slice_image);

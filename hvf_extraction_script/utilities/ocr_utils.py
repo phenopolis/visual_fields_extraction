@@ -7,8 +7,11 @@ from collections import defaultdict
 from operator import attrgetter
 
 import boto3
-from hvf_extraction_script.utilities.regex_utils import Regex_Utils
 from PIL import Image
+from tesserocr import PSM, PyTessBaseAPI
+
+from hvf_extraction_script.utilities.image_utils import Image_Utils
+from hvf_extraction_script.utilities.regex_utils import Regex_Utils
 
 
 class RekognitionText:
@@ -49,7 +52,16 @@ def columnise(texts, rel_tol=0.02) -> str:
 
 class Ocr_Utils:
     @staticmethod
-    def perform_ocr(img_arr, proc_img: bool = False, column: bool = True, debug_dir: str = "") -> str:
+    def perform_ocr(
+        img_arr, proc_img: bool = False, column: bool = True, debug_dir: str = "", rekognition=False
+    ) -> str:
+        if rekognition:
+            return Ocr_Utils.do_rekognition(img_arr, column, debug_dir)
+        else:
+            return Ocr_Utils.do_tesserocr(proc_img, img_arr, column, debug_dir)
+
+    @staticmethod
+    def do_rekognition(img_arr, column, debug_dir):
         img = Image.fromarray(img_arr)
         client = boto3.client("rekognition")
         buf = io.BytesIO()
@@ -67,6 +79,32 @@ class Ocr_Utils:
         if debug_dir:
             out = Regex_Utils.temp_out(debug_dir=debug_dir)
             img.save(f"{out}.jpg")
+            with open(f"{out}.txt", "w") as f:
+                f.writelines(text)
+
+        # Return extracted text:
+        return text
+
+    @staticmethod
+    def do_tesserocr(proc_img, img_arr, column, debug_dir):
+        if proc_img:
+            # First, preprocessor the image:
+            img_arr = Image_Utils.preprocess_image(img_arr, debug_dir=debug_dir)
+
+        # Next, convert image to python PIL (because pytesseract using PIL):
+        img_pil = Image.fromarray(img_arr)
+
+        if not Ocr_Utils.OCR_API_HANDLE:
+            Ocr_Utils.OCR_API_HANDLE = PyTessBaseAPI(psm=PSM.SINGLE_COLUMN)
+            # Ocr_Utils.OCR_API_HANDLE = PyTessBaseAPI(psm=PSM.SINGLE_BLOCK)
+
+        Ocr_Utils.OCR_API_HANDLE.SetImage(img_pil)
+        Ocr_Utils.OCR_API_HANDLE.SetSourceResolution(200)
+        text: str = Ocr_Utils.OCR_API_HANDLE.GetUTF8Text()
+
+        if debug_dir:
+            out = Regex_Utils.temp_out(debug_dir=debug_dir)
+            img_pil.save(f"{out}.jpg")
             with open(f"{out}.txt", "w") as f:
                 f.writelines(text)
 

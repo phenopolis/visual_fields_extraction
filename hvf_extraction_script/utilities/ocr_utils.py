@@ -7,11 +7,9 @@ from collections import defaultdict
 from operator import attrgetter
 
 import boto3
-from PIL import Image
-from tesserocr import PSM, PyTessBaseAPI
-
 from hvf_extraction_script.utilities.image_utils import Image_Utils
 from hvf_extraction_script.utilities.regex_utils import Regex_Utils
+from PIL import Image
 
 
 class RekognitionText:
@@ -87,6 +85,8 @@ class Ocr_Utils:
 
     @staticmethod
     def do_tesserocr(proc_img, img_arr, column, debug_dir):
+        from tesserocr import PSM, PyTessBaseAPI
+
         if proc_img:
             # First, preprocessor the image:
             img_arr = Image_Utils.preprocess_image(img_arr, debug_dir=debug_dir)

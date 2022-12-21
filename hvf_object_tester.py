@@ -20,14 +20,11 @@
 #
 ###############################################################################
 
-import argparse
-
-from tap import Tap
-
 from hvf_extraction_script.hvf_data.hvf_object import Hvf_Object
 from hvf_extraction_script.hvf_manager.hvf_test import Hvf_Test
 from hvf_extraction_script.utilities.file_utils import File_Utils
 from hvf_extraction_script.utilities.logger import Logger
+from tap import Tap
 
 # Default directory for unit tests:
 default_unit_test_dir = "default"

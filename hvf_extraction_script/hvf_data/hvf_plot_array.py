@@ -511,7 +511,7 @@ class Hvf_Plot_Array:
             # The bottom line tends to be problematic (still some residual Left
             # after erasing matching icon) so manually look for residual
             while True:
-                sum_pixels = sum(plot_image[row_index, x_start:x_end])
+                sum_pixels = np.sum(plot_image[row_index, x_start:x_end])
                 Logger.get_logger().log_msg(Logger.DEBUG_FLAG_DEBUG, "Sum pixels: " + str(sum_pixels))
 
                 if sum_pixels < threshold_pixel_value:
@@ -699,9 +699,7 @@ class Hvf_Plot_Array:
 
             else:
                 # It coincides -> convert it to the closest centroid of a blank area
-                Logger.get_logger().log_msg(
-                    Logger.DEBUG_FLAG_INFO, f"Shifting row grid line {r} to nearest centroid"
-                )
+                Logger.get_logger().log_msg(Logger.DEBUG_FLAG_INFO, f"Shifting row grid line {r} to nearest centroid")
                 closest_centroid = list(sorted(centroid_horizontal, key=(lambda y: abs(y - row_val))))[0]
 
                 row_list.append(closest_centroid)
